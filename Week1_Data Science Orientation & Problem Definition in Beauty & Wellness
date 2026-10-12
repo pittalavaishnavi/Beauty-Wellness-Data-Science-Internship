@@ -1,0 +1,58 @@
+# Week 1 – Data Science Orientation & Problem Definition
+
+## 1. Executive Overview
+
+The proposed project addresses a practical beauty and wellness business problem: predicting customer product demand and identifying the factors associated with stronger product interest. Beauty customers have diverse preferences influenced by product category, price, ratings, reviews, ingredients, promotions, seasonality and digital engagement. A data science framework can combine these signals to support better assortment planning, marketing prioritization and customer-focused recommendations.
+
+## 2. Business Problem Statement
+
+Beauty and wellness brands often have large volumes of product and customer-interaction information but may struggle to convert it into reliable decisions about which products are likely to attract demand. The project therefore proposes a predictive analytics solution that estimates product demand or purchase-interest score using product attributes, customer ratings/reviews, price, discount, category, brand positioning and engagement indicators. The problem is suitable for supervised learning because a historical outcome such as sales volume, demand score or purchase probability can serve as a target variable.
+
+## 3. Industry Relevance
+
+The beauty and wellness market is strongly influenced by rapidly changing consumer preferences, product innovation, digital reviews and promotional activity. Data science can help organizations move from descriptive reporting toward evidence-based demand planning and personalized marketing. The proposed problem is relevant because improving demand estimation can reduce stock-outs and excess inventory while helping marketers allocate attention toward products with stronger expected customer response.
+
+## 4. Project Objectives
+
+The primary objective is to design a reproducible Python-based analytics workflow for understanding and predicting customer demand. Secondary objectives are to identify important demand drivers, explore relationships among product characteristics and customer response, compare predictive algorithms, evaluate model reliability, and translate model outputs into business recommendations.
+
+## 5. Research Questions
+
+1. Which product, pricing, rating and engagement variables are most strongly associated with customer demand?
+2. Does customer rating or review activity provide useful predictive information beyond price and category?
+3. How do discount levels differ across product categories and how are they associated with demand?
+4. Can a predictive model estimate demand sufficiently well to support inventory and marketing decisions?
+5. Which customer/product segments appear most responsive to promotional activity?
+
+## 6. Hypotheses
+
+H1: Products with higher customer ratings and stronger review engagement will generally show higher demand.
+H2: Moderate discounts will be associated with increased demand, although the relationship may vary by category.
+H3: Product category, price and brand positioning will explain meaningful variation in customer demand.
+H4: Engineered features combining rating, review volume, discount and engagement will improve predictive performance compared with a basic feature set.
+
+## 7. Proposed Variables and Data
+
+Potential target variables include units sold, demand score, purchase probability or monthly sales. Candidate predictors include product category, subcategory, brand, price, discount percentage, rating, review count, review sentiment, ingredient count, product size, promotion indicator, season/month, website engagement and repeat-purchase rate. Where customer-level data are unavailable, product-level public datasets can be used as a conceptual proxy.
+
+## 8. Analytical Approach
+
+The project will follow a structured sequence: define the business problem; identify public data; assess data quality; clean and standardize fields; conduct exploratory data analysis; engineer useful features; split data into training, validation and test sets; compare predictive algorithms; evaluate performance; interpret drivers; and communicate recommendations. Python tools will include pandas and NumPy for data preparation, matplotlib/seaborn for visualization, SciPy for statistical analysis, and scikit-learn for machine learning.
+
+## 9. Ethics, Privacy and Limitations
+
+The analysis should prioritize public, aggregated or appropriately anonymized data. Personally identifiable information should not be collected unnecessarily. Social-media or review data must respect platform terms and applicable privacy requirements. Public datasets may not perfectly represent the complete beauty market, so findings should be interpreted as evidence from the available sample rather than universal consumer behavior.
+
+## 10. Five/Six-Week Roadmap
+
+Week 1: Problem definition and research questions.
+Week 2: Data identification, sourcing and initial analysis plan.
+Week 3: Data cleaning and preprocessing pipeline.
+Week 4: EDA and feature engineering.
+Week 5: Predictive modeling and algorithm selection.
+Week 6: Model evaluation, reporting and business impact communication.
+
+## 11. Expected Outcome
+
+The expected outcome is a documented end-to-end analytical framework that connects beauty-market questions to Python data science methods. The project should produce interpretable evidence about demand drivers and a validated predictive approach that can be translated into practical recommendations for product, marketing and customer-engagement decisions.
+
