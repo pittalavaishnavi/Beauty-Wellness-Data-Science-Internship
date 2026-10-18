@@ -1,0 +1,162 @@
+"""
+Initial quality checks and exploratory analysis for beauty product data.
+
+The included CSV is synthetic demonstration data. Do not treat it as real market evidence.
+"""
+from __future__ import annotations
+import argparse
+from pathlib import Path
+import pandas as pd
+import matplotlib.pyplot as plt
+
+REQUIRED_COLUMNS = ["product_name", "category", "list_price", "sale_price", "rating", "review_count"]
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Quality checks and EDA for beauty product data.")
+    parser.add_argument("--input", default="data/beauty_products_sample.csv", help="Path to input CSV")
+    parser.add_argument("--output-dir", default="outputs", help="Directory for reports and charts")
+    return parser.parse_args()
+
+def load_data(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        raise FileNotFoundError(f"Input file not found: {path}")
+    df = pd.read_csv(path)
+    missing_columns = [col for col in REQUIRED_COLUMNS if col not in df.columns]
+    if missing_columns:
+        raise ValueError(
+            "Input CSV is missing required columns: " + ", ".join(missing_columns)
+            + ". See README.md for expected fields."
+        )
+    return df
+
+def quality_report(df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for col in df.columns:
+        rows.append({
+            "column": col,
+            "dtype": str(df[col].dtype),
+            "missing_count": int(df[col].isna().sum()),
+            "missing_percent": round(float(df[col].isna().mean() * 100), 2),
+            "unique_values": int(df[col].nunique(dropna=True))
+        })
+    report = pd.DataFrame(rows)
+    report.loc[len(report)] = {
+        "column": "__duplicate_rows__",
+        "dtype": "dataframe",
+        "missing_count": int(df.duplicated().sum()),
+        "missing_percent": round(float(df.duplicated().mean() * 100), 2) if len(df) else 0,
+        "unique_values": ""
+    }
+    return report
+
+def clean_data(df: pd.DataFrame) -> pd.DataFrame:
+    clean = df.copy()
+    # Standardize text without destroying the original raw file.
+    for col in ["product_name", "category"]:
+        clean[col] = clean[col].astype("string").str.strip()
+    clean["category"] = clean["category"].str.replace(r"\s+", " ", regex=True).str.title()
+
+    numeric_cols = ["list_price", "sale_price", "rating", "review_count", "monthly_units_sold"]
+    for col in numeric_cols:
+        if col in clean.columns:
+            clean[col] = pd.to_numeric(clean[col], errors="coerce")
+
+    # Remove exact duplicates only; repeated products may otherwise be legitimate variants.
+    clean = clean.drop_duplicates().copy()
+
+    # Create validation flags rather than silently deleting questionable values.
+    clean["flag_invalid_price"] = (
+        clean["list_price"].le(0) | clean["sale_price"].le(0)
+    )
+    clean["flag_sale_above_list"] = clean["sale_price"] > clean["list_price"]
+    clean["flag_invalid_rating"] = ~clean["rating"].between(0, 5) & clean["rating"].notna()
+    clean["flag_negative_review_count"] = clean["review_count"].lt(0) & clean["review_count"].notna()
+
+    # Calculate a discount from prices, and preserve the source-provided values.
+    clean["calculated_discount_pct"] = (
+        (clean["list_price"] - clean["sale_price"]) / clean["list_price"] * 100
+    ).where(clean["list_price"] > 0)
+    return clean
+
+def make_charts(df: pd.DataFrame, output_dir: Path) -> None:
+    # Price against actual sales only when the field exists.
+    target = "monthly_units_sold" if "monthly_units_sold" in df.columns else None
+
+    plt.figure()
+    df["rating"].dropna().plot(kind="hist", bins=8)
+    plt.title("Distribution of Product Ratings")
+    plt.xlabel("Rating")
+    plt.ylabel("Product count")
+    plt.tight_layout()
+    plt.savefig(output_dir / "ratings_distribution.png", dpi=160)
+    plt.close()
+
+    if target:
+        plot_df = df.dropna(subset=["sale_price", target])
+        plt.figure()
+        plt.scatter(plot_df["sale_price"], plot_df[target])
+        plt.title("Sale Price vs Monthly Units Sold (if source provides sales)")
+        plt.xlabel("Sale price")
+        plt.ylabel("Monthly units sold")
+        plt.tight_layout()
+        plt.savefig(output_dir / "price_vs_target.png", dpi=160)
+        plt.close()
+
+        category_summary = df.groupby("category", dropna=False).agg(
+            product_count=("product_name", "count"),
+            median_monthly_units_sold=(target, "median"),
+            mean_monthly_units_sold=(target, "mean")
+        ).reset_index()
+        category_summary.to_csv(output_dir / "category_summary.csv", index=False)
+
+        plt.figure()
+        category_summary.sort_values("median_monthly_units_sold").plot(
+            x="category", y="median_monthly_units_sold", kind="bar", legend=False
+        )
+        plt.title("Median Monthly Units Sold by Category")
+        plt.xlabel("Category")
+        plt.ylabel("Median monthly units sold")
+        plt.xticks(rotation=30, ha="right")
+        plt.tight_layout()
+        plt.savefig(output_dir / "category_target.png", dpi=160)
+        plt.close()
+    else:
+        # Review count is not automatically substituted for sales.
+        print("No monthly_units_sold column: skipping sales charts. Review count is not treated as sales.")
+
+    numeric = df.select_dtypes(include="number")
+    if numeric.shape[1] >= 2:
+        corr = numeric.corr(method="spearman")
+        plt.figure(figsize=(7, 5))
+        plt.imshow(corr, aspect="auto", vmin=-1, vmax=1)
+        plt.colorbar(label="Spearman correlation")
+        plt.xticks(range(len(corr.columns)), corr.columns, rotation=45, ha="right")
+        plt.yticks(range(len(corr.columns)), corr.columns)
+        plt.title("Numeric Variable Correlation (Exploratory)")
+        plt.tight_layout()
+        plt.savefig(output_dir / "numeric_correlation_heatmap.png", dpi=160)
+        plt.close()
+
+def main():
+    args = parse_args()
+    input_path = Path(args.input)
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    raw = load_data(input_path)
+    quality_report(raw).to_csv(output_dir / "data_quality_report.csv", index=False)
+
+    clean = clean_data(raw)
+    clean.to_csv(output_dir / "cleaned_beauty_products.csv", index=False)
+
+    numeric = clean.select_dtypes(include="number")
+    numeric.describe().T.to_csv(output_dir / "descriptive_statistics.csv")
+
+    make_charts(clean, output_dir)
+
+    print(f"Loaded {len(raw)} rows from {input_path}")
+    print(f"Saved quality report, cleaned data, summary statistics and charts to {output_dir}")
+    print("Reminder: associations are not causal evidence; verify the source and dataset licence.")
+
+if __name__ == "__main__":
+    main()
